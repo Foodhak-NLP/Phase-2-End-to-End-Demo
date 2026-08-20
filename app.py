@@ -397,13 +397,13 @@ if _view == "Meals & adherence":
                 f"target-specific gate {'passed' if r['target_specific_ok'] else 'not met'}"
             )
 
-    st.subheader("Intensity across the block")
+    st.subheader("Intensity across the 30 days")
     order = {"recovery": 0, "maintain": 1, "full": 2}
     idf = pd.DataFrame([{"Day": d["day"], "Intensity": d["intensity"],
                          "level": order[d["intensity"]]} for d in sim["days_detail"]])
     st.altair_chart(
         alt.Chart(idf).mark_line(interpolate="step-after", strokeWidth=3).encode(
-            x=alt.X("Day:Q", title="Day of block"),
+            x=alt.X("Day:Q", title="Day"),
             y=alt.Y("level:Q", title="Intensity", axis=alt.Axis(
                 values=[0, 1, 2], labelExpr="datum.value == 0 ? 'recovery' : datum.value == 1 ? 'maintain' : 'full'")),
             tooltip=["Day", "Intensity"],
@@ -415,7 +415,7 @@ if _view == "Meals & adherence":
 # Day-30 review
 # --------------------------------------------------------------------------
 if _view == "Day-30 review":
-    st.subheader("End-of-block review")
+    st.subheader("Day-30 review")
 
     if not _anthropic_key():
         with st.expander("Connect Claude to write this review", expanded=True):
@@ -428,20 +428,20 @@ if _view == "Day-30 review":
         st.caption("Without a key the review is written from the same data by a rule-based summariser.")
 
     if st.button("Generate review", type="primary"):
-        with st.spinner("Analysing the block…"):
+        with st.spinner("Analysing the 30 days…"):
             st.session_state.narrative = sim_reasoning.generate(
                 sim, food_rationale, api_key=_anthropic_key() or None
             )
     n = st.session_state.get("narrative")
     if not n:
-        st.info("Generate the end-of-block review once the run looks right.")
+        st.info("Generate the day-30 review once the run looks right.")
     else:
         if n["note"]:
             st.warning(n["note"])
         st.caption(f"Source: {n['source']}")
         st.markdown(n["text"])
 
-    with st.expander("Ingredient → biomarker evidence used this block"):
+    with st.expander("Ingredient → biomarker evidence used"):
         st.caption(
             "**direct** — the food itself was studied for that biomarker; `subject_trials` "
             "are its trials. **via X** — two hops: `contains_subject` evidences that the food "

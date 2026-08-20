@@ -1,7 +1,7 @@
 """
 Day-30 narrative.
 
-Turns the run into a clinician-facing explanation: what the block delivered, why
+Turns the run into a clinician-facing explanation: what the 30 days delivered, why
 those foods were chosen — grounded in the ingredient-biomarker evidence — and what
 the day-30 draw should be read against.
 
@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 MODEL = "claude-sonnet-5"
 
-SYSTEM = """You are a clinical nutrition informatics analyst writing the end-of-block \
+SYSTEM = """You are a clinical nutrition informatics analyst writing the end-of-cycle \
 summary for a post-operative Phase-2 nutrition platform. Your reader is the \
 supervising dietitian.
 
@@ -38,15 +38,16 @@ are of X, not of the food. Say which when it matters — an indirect link is mat
 weaker, and weaker still when `contains_source` is "factsheet" rather than "paper". \
 `subject_trials` links the trials, `contains_subject` the containment evidence. Never \
 invent a PMID.
-- The block length is given in `block.length_days`. Never infer it from the review \
-days — reviews stop at day 21 but the block continues past it.
+- The cycle length is given in `block.length_days`. Never infer it from the review \
+days — reviews stop at day 21 but the cycle continues past it.
+- Do not use the word "block". Say "the 30 days", "this cycle" or "this period".
 - No hedging filler, no apologies. Write plainly for a busy clinician.
 
 Structure your answer with these markdown headings, in this order:
-## What the block delivered
+## What the 30 days delivered
 ## Why — the dietary mechanism
 ## What adherence tells us
-## Recommendation for the next block
+## Recommendation for the next cycle
 Keep it under 600 words."""
 
 
@@ -91,9 +92,9 @@ def build_payload(sim: Dict[str, Any], rationale: List[Dict[str, str]]) -> Dict[
             "length_days": meta.get("days") or len(days_detail),
             "review_days": list(meta.get("thresholds", {}).get("review_days", []) or [7, 14, 21]),
             "note": (
-                f"The block is {meta.get('days') or len(days_detail)} days. Weekly reviews fall "
+                f"The cycle is {meta.get('days') or len(days_detail)} days. Weekly reviews fall "
                 "on days 7, 14 and 21 only — the day-21 decision carries the remaining days to "
-                "the end. Do not infer the block length from the last review."
+                "the end. Do not infer the cycle length from the last review."
             ),
             "days_at_each_intensity": intensity_days,
             "meals_skipped": skipped,
@@ -166,7 +167,7 @@ def generate(
         }
 
     prompt = (
-        "Write the end-of-block summary for this Phase-2 run.\n\n"
+        "Write the end-of-cycle summary for this Phase-2 run.\n\n"
         + json.dumps(payload, indent=2)
     )
 
@@ -223,7 +224,7 @@ def _read(message: Any, payload: Dict[str, Any]) -> Dict[str, Any]:
 def deterministic(p: Dict[str, Any]) -> str:
     action = p["locked_action"]
     lines: List[str] = []
-    lines.append("## What the block delivered\n")
+    lines.append("## What the 30 days delivered\n")
     lines.append(
         f"The patient was held on **{action['name']}** (action {action['id']}, covering "
         f"{', '.join(action['clusters']) or 'no main cluster'}) for the full "
@@ -231,9 +232,6 @@ def deterministic(p: Dict[str, Any]) -> str:
         f"{', '.join(str(d) for d in p['block']['review_days'])}; the last decision carried "
         f"the remaining days.\n"
     )
-    lines.append("No biomarker values are predicted here. These are the phase-2 entry labs "
-                 "the block started from — the day-30 draw is the only source for where they "
-                 "have moved.\n")
     for row in p["biomarker_baseline"]:
         mark = "targeted by the action" if row["covered_by_action"] else "**not covered by this action**"
         lines.append(
@@ -243,7 +241,7 @@ def deterministic(p: Dict[str, Any]) -> str:
     if p.get("uncoverable_targets"):
         lines.append(
             f"\n{', '.join(p['uncoverable_targets'])} sits in a safety-layer cluster that no "
-            f"action space pursues, so it was never a lever this block."
+            f"action space pursues, so it was never a lever in these 30 days."
         )
 
     lines.append("\n## Why — the dietary mechanism\n")
@@ -257,7 +255,7 @@ def deterministic(p: Dict[str, Any]) -> str:
         tail = mech.split("—", 1)[1].strip() if "—" in mech else mech
         lines.append(f"- **{row['ingredient']}** — {tail}")
     lines.append(
-        "\nEach recipe served this block was built from that set, which is the basis for "
+        "\nEach recipe served was built from that set, which is the basis for "
         "expecting movement in the targeted direction."
     )
 
@@ -274,18 +272,18 @@ def deterministic(p: Dict[str, Any]) -> str:
     means = [w["mean_adherence"] for w in weeks]
     if means and sum(means) / len(means) < 0.65:
         lines.append(
-            "\nAdherence was low enough that this block does not test the strategy. "
+            "\nAdherence was low enough that these 30 days do not test the strategy. "
             "Treat a disappointing day-30 result as untested rather than ineffective."
         )
 
-    lines.append("\n## Recommendation for the next block\n")
+    lines.append("\n## Recommendation for the next cycle\n")
     lines.append(
         "- Draw the day-30 panel. Nothing here substitutes for it.\n"
         "- Read the result against the adherence above: a disappointing lab with high adherence "
         "means the strategy is wrong for this patient; with low adherence it means the strategy "
         "was never tested.\n"
         "- Check whether the targets the action could not cover need a different action space "
-        "next block, or a route other than diet."
+        "next cycle, or a route other than diet."
     )
     lines.append(f"\n_{p['model_caveats']['no_projection']}_")
     return "\n".join(lines)
