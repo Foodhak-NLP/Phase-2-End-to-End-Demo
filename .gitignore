@@ -1,0 +1,9 @@
+# Never commit secrets — GitHub secret scanning detects an Anthropic key and
+# Anthropic revokes it automatically.
+.streamlit/secrets.toml
+.env
+*.env
+
+__pycache__/
+*.pyc
+.DS_Store
