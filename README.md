@@ -1,4 +1,4 @@
-# Post-op Phase-2 30-day simulator
+# Post-op Phase-2
 
 Simulates the full Phase-2 arc for one patient: healthy → surgery → Phase-2 entry →
 CQL locks one action space for 30 days → daily recipes with weekly adherence control

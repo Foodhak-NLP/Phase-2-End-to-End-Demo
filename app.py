@@ -1,8 +1,8 @@
 """
-Post-op Phase-2 30-day simulator.
+Post-op Phase-2 — 30-day cycle simulator.
 
 Healthy patient -> surgery -> Phase-2 entry -> CQL action -> 30 days of
-recommendations with weekly adherence control -> day-30 narrative.
+recommendations with weekly adherence control -> end-of-cycle narrative.
 
 Run:  streamlit run app.py
 """
@@ -20,7 +20,7 @@ import sim_macros
 import sim_patient as P
 import sim_reasoning
 
-st.set_page_config(page_title="Post-op Phase-2 Simulator", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Post-op Phase-2", page_icon="🩺", layout="wide")
 
 
 def _anthropic_key() -> str:
@@ -146,10 +146,10 @@ wb = sim_macros.load()
 row = sim_macros.resolve(wb, action_id=action_id, intensity="maintain",
                          sex=sex, age=age, weight_kg=weight_kg, height_cm=height_cm)
 
-st.title("Post-op Phase-2 Simulator")
+st.title("Post-op Phase-2")
 st.caption(
     "Healthy patient → surgery → Phase-2 entry → CQL locks one action for 30 days → "
-    "daily recipes, weekly adherence control → day-30 review."
+    "daily recipes, weekly adherence control → end-of-cycle review."
 )
 
 if not doctor_targets:
@@ -209,7 +209,7 @@ sim = st.session_state.sim
 if "picked_day" not in st.session_state:
     st.session_state.picked_day = 1
 
-_VIEWS = ["Patient & CQL", "Meals & adherence", "Day-30 review"]
+_VIEWS = ["Patient & CQL", "Meals & adherence", "End-of-cycle review"]
 if "view" not in st.session_state:
     st.session_state.view = _VIEWS[0]
 st.segmented_control("View", _VIEWS, key="view", label_visibility="collapsed")
@@ -412,10 +412,10 @@ if _view == "Meals & adherence":
     )
 
 # --------------------------------------------------------------------------
-# Day-30 review
+# End-of-cycle review
 # --------------------------------------------------------------------------
-if _view == "Day-30 review":
-    st.subheader("Day-30 review")
+if _view == "End-of-cycle review":
+    st.subheader("End-of-cycle review")
 
     if not _anthropic_key():
         with st.expander("Connect Claude to write this review", expanded=True):
@@ -434,7 +434,7 @@ if _view == "Day-30 review":
             )
     n = st.session_state.get("narrative")
     if not n:
-        st.info("Generate the day-30 review once the run looks right.")
+        st.info("Generate the end-of-cycle review once the run looks right.")
     else:
         if n["note"]:
             st.warning(n["note"])
